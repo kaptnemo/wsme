@@ -217,7 +217,8 @@ def format_exception(excinfo, debug=False):
     if code and utils.is_valid_code(code) and utils.is_client_error(code):
         faultstring = (error.faultstring if hasattr(error, 'faultstring')
                        else six.text_type(error))
-        r = dict(faultcode="Client",
+        faultcode = getattr(error, 'faultcode', 'Client')
+        r = dict(faultcode=faultcode,
                  faultstring=faultstring)
         log.debug("Client-side error: %s" % r['faultstring'])
         r['debuginfo'] = None
