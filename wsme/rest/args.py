@@ -233,6 +233,8 @@ def args_from_body(funcdef, body, mimetype):
         dataformat = restjson
     elif mimetype in restxml.accept_content_types:
         dataformat = restxml
+    elif mimetype == 'multipart/form-data':
+        return parse_multipart_data_from_body(datatypes, params)
     else:
         raise ClientSideError("Unknown mimetype: %s" % mimetype,
                               status_code=415)
@@ -246,6 +248,24 @@ def args_from_body(funcdef, body, mimetype):
             raise
         kw = {}
 
+    return (), kw
+
+
+def parse_multipart_data_from_body(datatypes, params):
+    kw = dict()
+    for name, datatype in datatypes.items():
+        r = datatype()
+        for attrdef in list_attributes(datatype):
+            value = from_param(
+                attrdef.datatype,
+                params.get(attrdef.key)
+            )
+            if value is not None:
+                setattr(r, attrdef.key, value)
+            elif attrdef.mandatory:
+                raise wsme.exc.InvalidInput(attrdef.name, None,
+                                            "Mandatory field missing.")
+        kw[name] = r
     return (), kw
 
 
@@ -284,7 +304,10 @@ def get_args(funcdef, args, kwargs, params, form, body, mimetype):
     from_args = args_from_args(funcdef, args, kwargs)
 
     # extract args from the request parameters
-    from_params = args_from_params(funcdef, params)
+    if mimetype == 'multipart/form-data':
+        from_params = (), {}
+    else:
+        from_params = args_from_params(funcdef, params)
 
     # extract args from the form parameters
     if form:

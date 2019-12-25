@@ -50,7 +50,11 @@ def tojson(datatype, value):
     if wsme.types.iscomplex(datatype):
         d = dict()
         for attr in wsme.types.list_attributes(datatype):
-            attr_value = getattr(value, attr.key)
+            try:
+                attr_value = getattr(value, attr.key)
+            except AttributeError:
+                if not attr.mandatory:
+                    continue
             if attr_value is not Unset:
                 d[attr.name] = tojson(attr.datatype, attr_value)
         return d
